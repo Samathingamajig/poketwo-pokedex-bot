@@ -7,6 +7,10 @@ import { z } from "zod";
  */
 export const serverSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]),
+
+  DISCORD_APPLICATION_ID: z.string().min(1),
+  DISCORD_APPLICATION_PUBLIC_KEY: z.string().min(1),
+  DISCORD_BOT_TOKEN: z.string().min(1),
 });
 
 /**
@@ -16,6 +20,10 @@ export const serverSchema = z.object({
  */
 export const serverEnv = {
   NODE_ENV: process.env.NODE_ENV,
+
+  DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
+  DISCORD_APPLICATION_PUBLIC_KEY: process.env.DISCORD_APPLICATION_PUBLIC_KEY,
+  DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
 };
 
 /**
