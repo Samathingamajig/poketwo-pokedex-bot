@@ -1,5 +1,4 @@
 import { env } from "../../env/server.mjs";
-import hello from "../../commands/hello";
 import dehintSlash from "../../commands/dehintSlash";
 import dehintMessage from "../../commands/dehintMessage";
 
@@ -11,7 +10,7 @@ export const creator = new SlashCreator({
   token: env.DISCORD_BOT_TOKEN,
 });
 
-creator.withServer(new VercelServer()).registerCommands([hello, dehintSlash, dehintMessage]);
+creator.withServer(new VercelServer()).registerCommands([dehintSlash, dehintMessage]);
 
 creator.on("warn", (message) => console.warn(message));
 creator.on("error", (error) => console.error(error));
