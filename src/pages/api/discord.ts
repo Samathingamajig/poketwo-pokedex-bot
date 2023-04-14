@@ -4,6 +4,10 @@ import dehintMessage from "../../commands/dehintMessage";
 
 import { SlashCreator, VercelServer } from "slash-create";
 
+export const config = {
+  runtime: 'edge',
+}
+
 export const creator = new SlashCreator({
   applicationID: env.DISCORD_APPLICATION_ID,
   publicKey: env.DISCORD_APPLICATION_PUBLIC_KEY,
