@@ -9,7 +9,7 @@ import type { Snowflake } from "discord-api-types/v10";
 import { env } from "../../env/server.mjs";
 import { sign } from "tweetnacl";
 import { z } from "zod";
-import { formatPokemonSearch, loadPokemon, searchPokemon, searchPokemonLooseExclusive } from "../../dehint.js";
+import { formatPokemonSearch, loadPokemon, searchPokemon, searchPokemonLooseExclusive } from "../../dehint";
 
 export const config = {
   runtime: "edge",
