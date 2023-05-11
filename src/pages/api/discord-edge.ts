@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextRequest } from "next/server.js";
 import { InteractionResponseType, InteractionType } from "discord-api-types/v10";
 import { env } from "../../env/server.mjs";
 import { sign } from "tweetnacl";
@@ -21,13 +21,13 @@ const discordInteractionSchema = z.object({
 });
 
 // The main logic of the Discord Slash Command is defined in this function.
-export default async function DiscordEdge(req: NextApiRequest, res: NextApiResponse) {
+export default async function discordEdge(req: NextRequest) {
   if (req.method?.toUpperCase() !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   }
 
-  if (!req.headers["x-signature-ed25519"] || !req.headers["x-signature-timestamp"]) {
-    return res.status(401).json({ error: "Unauthorized" });
+  if (!req.headers.get("x-signature-ed25519") || !req.headers.get("x-signature-timestamp")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
   // verifySignature() verifies if the request is coming from Discord.
@@ -36,7 +36,7 @@ export default async function DiscordEdge(req: NextApiRequest, res: NextApiRespo
   console.log("verifying signature");
   const { valid, body } = await verifySignature(req);
   if (!valid) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
   console.log("parsing body");
@@ -46,21 +46,27 @@ export default async function DiscordEdge(req: NextApiRequest, res: NextApiRespo
   // Discord performs Ping interactions to test our application.
   // Type 1 in a request implies a Ping interaction.
   if (type === InteractionType.Ping) {
-    return res.json({
-      type: InteractionResponseType.Pong, // Pong a ping
-    });
+    return new Response(
+      JSON.stringify({
+        type: InteractionResponseType.Pong,
+      }),
+      { status: 200 },
+    );
   }
 
   // Type 2 in a request is an ApplicationCommand interaction.
   // It implies that a user has issued a command.
   if (type === InteractionType.ApplicationCommand) {
     console.log(data);
-    return res.json({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: "Hello, world!",
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          content: "Hello, world!",
+        },
+      }),
+      { status: 200 },
+    );
     // const { value } = data.options.find((option: { name: string; value: string }) => option.name === "name");
     // return json({
     //   // Type 4 responds with the below message retaining the user's
@@ -74,17 +80,17 @@ export default async function DiscordEdge(req: NextApiRequest, res: NextApiRespo
 
   // We will return a bad request error as a valid Discord request
   // shouldn't reach here.
-  return res.status(400).json({ error: "Bad request" });
+  return new Response(JSON.stringify({ error: "Bad request" }), { status: 400 });
 }
 
 /** Verify whether the request is coming from Discord. */
-async function verifySignature(request: NextApiRequest): Promise<{ valid: boolean; body: string }> {
+async function verifySignature(request: NextRequest): Promise<{ valid: boolean; body: string }> {
   const PUBLIC_KEY = env.DISCORD_APPLICATION_PUBLIC_KEY;
   // Discord sends these headers with every request.
-  const signature = request.headers["X-Signature-Ed25519"] as string;
-  const timestamp = request.headers["X-Signature-Timestamp"] as string;
+  const signature = request.headers.get("X-Signature-Ed25519") ?? "";
+  const timestamp = request.headers.get("X-Signature-Timestamp") ?? "";
   console.log("parsing body");
-  const body = await parseRawBodyAsString(request);
+  const body = await request.text();
   console.log("sign.detached.verify");
   const valid = sign.detached.verify(
     new TextEncoder().encode(timestamp + body),
@@ -98,19 +104,4 @@ async function verifySignature(request: NextApiRequest): Promise<{ valid: boolea
 /** Converts a hexadecimal string to Uint8Array. */
 function hexToUint8Array(hex: string) {
   return new Uint8Array((hex.match(/.{1,2}/g) ?? []).map((val) => parseInt(val, 16)));
-}
-
-/**
- * Parse body from payload as raw string: https://github.com/vercel/next.js/blob/86160a5190c50ea315c7ba91d77dfb51c42bc65f/test/integration/api-support/pages/api/no-parsing.js
- */
-function parseRawBodyAsString(req: NextApiRequest) {
-  return new Promise<string>((resolve) => {
-    let data = "";
-    req.on("data", (chunk) => {
-      data += chunk;
-    });
-    req.on("end", () => {
-      resolve(Buffer.from(data).toString());
-    });
-  });
 }
