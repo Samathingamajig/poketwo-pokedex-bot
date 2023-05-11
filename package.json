@@ -12,10 +12,12 @@
     "@discordjs/builders": "^1.4.0",
     "discord-api-types": "^0.37.28",
     "markdown-escape": "^2.0.0",
+    "nacl": "^0.1.3",
     "next": "13.1.1",
     "raw-body": "^2.5.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "sift": "^17.0.1",
     "slash-create": "^5.11.0",
     "tweetnacl": "^1.0.3",
     "zod": "^3.20.2"
