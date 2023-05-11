@@ -15,9 +15,11 @@ const discordInteractionSchema = z.object({
   type: z.number().refine<InteractionType>((val): val is InteractionType => {
     return InteractionType[val] !== undefined;
   }),
-  data: z.object({
-    options: z.array(z.any()).default(() => []),
-  }),
+  data: z
+    .object({
+      options: z.array(z.any()).default(() => []),
+    })
+    .default(() => ({})),
 });
 
 // The main logic of the Discord Slash Command is defined in this function.
@@ -89,7 +91,7 @@ async function verifySignature(request: NextRequest): Promise<{ valid: boolean; 
   // Discord sends these headers with every request.
   const signature = request.headers.get("X-Signature-Ed25519") ?? "";
   const timestamp = request.headers.get("X-Signature-Timestamp") ?? "";
-  console.log("parsing body");
+  console.log("getting body as text");
   const body = await request.text();
   console.log("sign.detached.verify");
   const valid = sign.detached.verify(
@@ -97,6 +99,7 @@ async function verifySignature(request: NextRequest): Promise<{ valid: boolean; 
     hexToUint8Array(signature),
     hexToUint8Array(PUBLIC_KEY),
   );
+  console.log("is valid?", valid);
 
   return { valid, body };
 }
