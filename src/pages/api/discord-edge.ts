@@ -9,7 +9,8 @@ import type { Snowflake } from "discord-api-types/v10";
 import { env } from "../../env/server.mjs";
 import { sign } from "tweetnacl";
 import { z } from "zod";
-import { formatPokemonSearch, loadPokemon, searchPokemon, searchPokemonLooseExclusive } from "../../dehint";
+import { formatPokemonSearch, searchPokemon, searchPokemonLooseExclusive } from "../../dehint";
+import pokemon from "../../pokemon.json";
 
 export const config = {
   runtime: "edge",
@@ -17,7 +18,6 @@ export const config = {
     bodyParser: false,
   },
 };
-let pokemon: string[] | null = null;
 const snowflakeSchema = z.string().refine((val): val is Snowflake => true);
 
 const discordInteractionSchema = z.object({
@@ -137,10 +137,6 @@ export default async function discordEdge(req: NextRequest) {
             "content-type": "application/json",
           },
         });
-      }
-
-      if (pokemon === null) {
-        pokemon = await loadPokemon();
       }
 
       const query = content.match(/^The pokémon is (.*)\.$/)?.[1] ?? content;
