@@ -1,8 +1,15 @@
 import type { NextRequest } from "next/server.js";
-import { InteractionResponseType, InteractionType } from "discord-api-types/v10";
+import {
+  InteractionResponseType,
+  InteractionType,
+  ApplicationCommandType,
+  ApplicationCommandOptionType,
+} from "discord-api-types/v10";
+import type { Snowflake } from "discord-api-types/v10";
 import { env } from "../../env/server.mjs";
 import { sign } from "tweetnacl";
 import { z } from "zod";
+import { formatPokemonSearch, loadPokemon, searchPokemon, searchPokemonLooseExclusive } from "../../dehint.js";
 
 export const config = {
   runtime: "edge",
@@ -10,16 +17,44 @@ export const config = {
     bodyParser: false,
   },
 };
+let pokemon: string[] | null = null;
+const snowflakeSchema = z.string().refine((val): val is Snowflake => true);
 
 const discordInteractionSchema = z.object({
-  type: z.number().refine<InteractionType>((val): val is InteractionType => {
+  type: z.number().refine((val): val is InteractionType => {
     return InteractionType[val] !== undefined;
   }),
   data: z
     .object({
-      options: z.array(z.any()).default(() => []),
+      id: snowflakeSchema,
+      name: z.string(),
+      type: z.number().refine((val): val is ApplicationCommandType => {
+        return ApplicationCommandType[val] !== undefined;
+      }),
+      options: z
+        .array(
+          z.object({
+            name: z.string(),
+            type: z.number().refine((val): val is ApplicationCommandOptionType => {
+              return ApplicationCommandOptionType[val] !== undefined;
+            }),
+            value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+          }),
+        )
+        .optional(),
+      resolved: z
+        .object({
+          messages: z
+            .record(
+              z.object({
+                content: z.string(),
+              }),
+            )
+            .optional(),
+        })
+        .optional(),
     })
-    .default(() => ({})),
+    .optional(),
 });
 
 // The main logic of the Discord Slash Command is defined in this function.
@@ -77,24 +112,72 @@ export default async function discordEdge(req: NextRequest) {
     );
   }
 
+  if (!data) {
+    return new Response(JSON.stringify({ error: "Bad request" }), {
+      status: 400,
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+  }
+
   // Type 2 in a request is an ApplicationCommand interaction.
   // It implies that a user has issued a command.
   if (type === InteractionType.ApplicationCommand) {
     console.log(data);
-    return new Response(
-      JSON.stringify({
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: "Hello, world!",
+
+    if (data.id === "1065536372175274035") {
+      // Dehint by right click
+      const content = Object.values(data.resolved?.messages ?? {})[0]?.content;
+
+      if (!content) {
+        return new Response(JSON.stringify({ error: "Bad request" }), {
+          status: 400,
+          headers: {
+            "content-type": "application/json",
+          },
+        });
+      }
+
+      if (pokemon === null) {
+        pokemon = await loadPokemon();
+      }
+
+      const query = content.match(/^The pokémon is (.*)\.$/)?.[1] ?? content;
+
+      const matches = searchPokemon(pokemon, query);
+      const looseMatches = searchPokemonLooseExclusive(pokemon, query);
+
+      return new Response(
+        JSON.stringify({
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: {
+            content: formatPokemonSearch(matches, looseMatches),
+          },
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
         },
-      }),
-      {
-        status: 200,
-        headers: {
-          "content-type": "application/json",
-        },
-      },
-    );
+      );
+    }
+
+    // return new Response(
+    //   JSON.stringify({
+    //     type: InteractionResponseType.ChannelMessageWithSource,
+    //     data: {
+    //       content: "Hello, world!",
+    //     },
+    //   }),
+    //   {
+    //     status: 200,
+    //     headers: {
+    //       "content-type": "application/json",
+    //     },
+    //   },
+    // );
     // const { value } = data.options.find((option: { name: string; value: string }) => option.name === "name");
     // return json({
     //   // Type 4 responds with the below message retaining the user's
