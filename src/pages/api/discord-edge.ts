@@ -25,11 +25,21 @@ const discordInteractionSchema = z.object({
 // The main logic of the Discord Slash Command is defined in this function.
 export default async function discordEdge(req: NextRequest) {
   if (req.method?.toUpperCase() !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: {
+        "content-type": "application/json",
+      },
+    });
   }
 
   if (!req.headers.get("x-signature-ed25519") || !req.headers.get("x-signature-timestamp")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: {
+        "content-type": "application/json",
+      },
+    });
   }
 
   // verifySignature() verifies if the request is coming from Discord.
@@ -38,7 +48,12 @@ export default async function discordEdge(req: NextRequest) {
   console.log("verifying signature");
   const { valid, body } = await verifySignature(req);
   if (!valid) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: {
+        "content-type": "application/json",
+      },
+    });
   }
 
   console.log("parsing body");
@@ -52,7 +67,12 @@ export default async function discordEdge(req: NextRequest) {
       JSON.stringify({
         type: InteractionResponseType.Pong,
       }),
-      { status: 200 },
+      {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+        },
+      },
     );
   }
 
@@ -67,7 +87,12 @@ export default async function discordEdge(req: NextRequest) {
           content: "Hello, world!",
         },
       }),
-      { status: 200 },
+      {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+        },
+      },
     );
     // const { value } = data.options.find((option: { name: string; value: string }) => option.name === "name");
     // return json({
@@ -82,7 +107,12 @@ export default async function discordEdge(req: NextRequest) {
 
   // We will return a bad request error as a valid Discord request
   // shouldn't reach here.
-  return new Response(JSON.stringify({ error: "Bad request" }), { status: 400 });
+  return new Response(JSON.stringify({ error: "Bad request" }), {
+    status: 400,
+    headers: {
+      "content-type": "application/json",
+    },
+  });
 }
 
 /** Verify whether the request is coming from Discord. */
