@@ -57,6 +57,7 @@ export default async function discordEdge(req: NextRequest) {
   }
 
   console.log("parsing body");
+  console.log("raw body", JSON.stringify(body));
   const { type, data } = discordInteractionSchema.parse(JSON.parse(body));
   console.log("type", type);
   console.log("data", data);
