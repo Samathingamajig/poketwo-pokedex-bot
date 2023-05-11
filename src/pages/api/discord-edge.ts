@@ -33,12 +33,16 @@ export default async function DiscordEdge(req: NextApiRequest, res: NextApiRespo
   // verifySignature() verifies if the request is coming from Discord.
   // When the request's signature is not valid, we return a 401 and this is
   // important as Discord sends invalid requests to test our verification.
+  console.log("verifying signature");
   const { valid, body } = await verifySignature(req);
   if (!valid) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  console.log("parsing body");
   const { type, data } = discordInteractionSchema.parse(JSON.parse(body));
+  console.log("type", type);
+  console.log("data", data);
   // Discord performs Ping interactions to test our application.
   // Type 1 in a request implies a Ping interaction.
   if (type === InteractionType.Ping) {
@@ -79,7 +83,9 @@ async function verifySignature(request: NextApiRequest): Promise<{ valid: boolea
   // Discord sends these headers with every request.
   const signature = request.headers["X-Signature-Ed25519"] as string;
   const timestamp = request.headers["X-Signature-Timestamp"] as string;
+  console.log("parsing body");
   const body = await parseRawBodyAsString(request);
+  console.log("sign.detached.verify");
   const valid = sign.detached.verify(
     new TextEncoder().encode(timestamp + body),
     hexToUint8Array(signature),
